@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Decentralized Marketplace</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Decentralized Marketplace</h1>
+      <button id="connect-wallet">Connect Wallet</button>
+      <p id="wallet-address">Not connected</p>
+
+      <div id="marketplace-actions" style="display: none">
+        <h2>List Product</h2>
+        <form id="list-product-form">
+          <input
+            type="text"
+            id="product-name"
+            placeholder="Product Name"
+            required
+          />
+          <input
+            type="number"
+            id="product-price"
+            placeholder="Price (ETH)"
+            required
+          />
+          <input
+            type="text"
+            id="product-description"
+            placeholder="Description"
+            required
+          />
+          <input
+            type="url"
+            id="product-image"
+            placeholder="Image URL"
+            required
+          />
+          <button type="submit">List Product</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="ethers.min.js"></script>
+    <!-- Ethers.js -->
+    <script>
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const contractAddress = "0x503aA9f9709dA7d38D56802CBaaaCD5da11768Db"; // Your contract address
+      const marketplaceABI = [
+        { name: "ProductListed", type: "event" },
+        { name: "ProductPurchased", type: "event" },
+        { name: "buyProduct", type: "function", stateMutability: "payable" },
+        { name: "getMyPurchases", type: "function", stateMutability: "view" },
+        { name: "getMySales", type: "function", stateMutability: "view" },
+        {
+          name: "listProduct",
+          type: "function",
+          stateMutability: "nonpayable",
+        },
+        { name: "productCount", type: "function", stateMutability: "view" },
+        { name: "products", type: "function", stateMutability: "view" },
+        { name: "purchases", type: "function", stateMutability: "view" },
+        { name: "sales", type: "function", stateMutability: "view" },
+      ];
+
+      let signer;
+      let contract;
+
+      document.getElementById("connect-wallet").onclick = connectWallet;
+      document.getElementById("list-product-form").onsubmit = listProduct;
+
+      async function connectWallet() {
+        if (window.ethereum) {
+          try {
+            const accounts = await window.ethereum.request({
+              method: "eth_requestAccounts",
+            });
+            const walletAddress = accounts[0];
+            signer = provider.getSigner();
+            contract = new ethers.Contract(
+              contractAddress,
+              marketplaceABI,
+              signer
+            );
+            document.getElementById(
+              "wallet-address"
+            ).innerText = `Connected: ${walletAddress}`;
+            document.getElementById("marketplace-actions").style.display =
+              "block";
+          } catch (err) {
+            console.error(err);
+          }
+        } else {
+          alert("Please install MetaMask!");
+        }
+      }
+
+      async function listProduct(event) {
+        event.preventDefault();
+
+        const name = document.getElementById("product-name").value;
+        const price = document.getElementById("product-price").value;
+        const description = document.getElementById(
+          "product-description"
+        ).value;
+        const imageUrl = document.getElementById("product-image").value;
+
+        try {
+          const tx = await contract.listProduct(
+            name,
+            description,
+            ethers.utils.parseEther(price), // Convert price to wei
+            imageUrl
+          );
+          await tx.wait();
+          alert("Product listed successfully!");
+        } catch (error) {
+          console.error("Error listing product:", error);
+          alert("Failed to list product.");
+        }
+      }
+    </script>
+  </body>
+</html>
